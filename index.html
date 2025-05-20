@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Ambient Soundscape</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: sans-serif;
+      background-size: cover;
+      background-position: center;
+      transition: background-image 1.2s ease-in-out;
+    }
+
+    .overlay {
+      background: rgba(0, 0, 0, 0.4);
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 0;
+    }
+
+    .container {
+      position: relative;
+      z-index: 1;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 2rem;
+      color: white;
+      text-align: center;
+    }
+
+    h2 {
+      margin: 0.5rem 0;
+    }
+
+    .controls {
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+      max-width: 500px;
+      width: 100%;
+    }
+
+    .sound-control {
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 1rem;
+      padding: 1rem;
+      backdrop-filter: blur(8px);
+    }
+
+    button {
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: white;
+      font-size: 1rem;
+      margin-top: 0.5rem;
+    }
+
+    button svg {
+      width: 24px;
+      height: 24px;
+      vertical-align: middle;
+      fill: white;
+      transition: transform 0.2s ease;
+    }
+
+    button:hover svg {
+      transform: scale(1.1);
+    }
+
+    input[type="range"] {
+      width: 100%;
+    }
+
+    .theme-toggle {
+      position: absolute;
+      top: 1rem;
+      right: 1rem;
+      background-color: rgba(255, 255, 255, 0.2);
+      padding: 0.5rem;
+      border-radius: 50%;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="overlay"></div>
+  <div class="container">
+    <button id="themeToggle" class="theme-toggle" title="Toggle Theme">
+      <svg id="themeIcon" viewBox="0 0 24 24"></svg>
+    </button>
+
+    <div class="controls" id="controls"></div>
+  </div>
+
+  <script>
+    const dayImage = 'day.jpg';
+    const nightImage = 'night.jpg';
+
+    const playIcon = `<path d="M8 5v14l11-7z"/>`;
+    const pauseIcon = `<path d="M6 5h4v14H6zm8 0h4v14h-4z"/>`;
+    const sunIcon = `<path d="M12 4.75a.75.75 0 01.75-.75h.5a.75.75 0 010 1.5h-.5A.75.75 0 0112 4.75zm6.364 1.886a.75.75 0 011.06 0l.354.354a.75.75 0 11-1.06 1.06l-.354-.354a.75.75 0 010-1.06zM18.25 12a.75.75 0 01.75-.75v-.5a.75.75 0 011.5 0v.5a.75.75 0 01-.75.75h-.5a.75.75 0 01-.75-.75zm-6.25 6.25a.75.75 0 01.75.75v.5a.75.75 0 01-1.5 0v-.5a.75.75 0 01.75-.75zm-6.364-1.886a.75.75 0 00-1.06 0l-.354.354a.75.75 0 101.06 1.06l.354-.354a.75.75 0 000-1.06zM5.75 12a.75.75 0 00-.75.75h-.5a.75.75 0 000 1.5h.5A.75.75 0 005.75 12zm6.25-6.25a5.25 5.25 0 100 10.5 5.25 5.25 0 000-10.5zM7.636 6.636a.75.75 0 00-1.06-1.06l-.354.354a.75.75 0 001.06 1.06l.354-.354z"/>`;
+    const moonIcon = `<path d="M21 12.79A9 9 0 0111.21 3c0-.13 0-.26.01-.39a.75.75 0 00-1.24-.6A10.97 10.97 0 002 12c0 6.08 4.92 11 11 11 4.89 0 9.03-3.19 10.4-7.56a.75.75 0 00-1.3-.65c-.07.07-.13.15-.19.23a8.97 8.97 0 01-.91-2.23z"/>`;
+
+    // Theme setup
+    let isDay = localStorage.getItem('isDay') === 'false' ? false : true;
+    document.body.style.backgroundImage = `url(${isDay ? dayImage : nightImage})`;
+    document.getElementById('themeIcon').innerHTML = isDay ? sunIcon : moonIcon;
+
+    document.getElementById('themeToggle').addEventListener('click', () => {
+      isDay = !isDay;
+      document.body.style.backgroundImage = `url(${isDay ? dayImage : nightImage})`;
+      document.getElementById('themeIcon').innerHTML = isDay ? sunIcon : moonIcon;
+      localStorage.setItem('isDay', isDay);
+    });
+
+    // Sounds array
+    const sounds = [
+      { id: 'coffeeDrip', label: 'Coffee Drip', file: 'coffee-drip.mp3' },
+      { id: 'coffeePour', label: 'Coffee Pouring', file: 'coffee-pour.mp3' },
+      { id: 'lofi', label: 'Lo-fi Music', file: 'lofi.mp3' },
+      { id: 'jazz', label: 'Jazz Music', file: 'jazz.mp3' },
+      { id: 'rain', label: 'Rain', file: 'rain.mp3' },
+    ];
+
+    const container = document.getElementById('controls');
+
+    sounds.forEach(({ id, label, file }) => {
+      const audio = new Audio(file);
+      audio.loop = true;
+
+      const savedVol = parseFloat(localStorage.getItem(`${id}Vol`) || '0.5');
+      const isPlaying = localStorage.getItem(`${id}Playing`) === 'true';
+
+      audio.volume = savedVol;
+      if (isPlaying) audio.play();
+
+      const wrapper = document.createElement('div');
+      wrapper.className = 'sound-control';
+
+      const heading = document.createElement('h2');
+      heading.textContent = label;
+
+      const button = document.createElement('button');
+      button.innerHTML = isPlaying ? `<svg viewBox="0 0 24 24">${pauseIcon}</svg>` : `<svg viewBox="0 0 24 24">${playIcon}</svg>`;
+      button.title = `Play/Pause ${label}`;
+
+      const slider = document.createElement('input');
+      slider.type = 'range';
+      slider.min = 0;
+      slider.max = 1;
+      slider.step = 0.01;
+      slider.value = savedVol;
+
+      button.addEventListener('click', () => {
+        if (audio.paused) {
+          audio.play();
+          button.innerHTML = `<svg viewBox="0 0 24 24">${pauseIcon}</svg>`;
+          localStorage.setItem(`${id}Playing`, 'true');
+        } else {
+          audio.pause();
+          button.innerHTML = `<svg viewBox="0 0 24 24">${playIcon}</svg>`;
+          localStorage.setItem(`${id}Playing`, 'false');
+        }
+      });
+
+      slider.addEventListener('input', (e) => {
+        audio.volume = e.target.value;
+        localStorage.setItem(`${id}Vol`, e.target.value);
+      });
+
+      wrapper.appendChild(heading);
+      wrapper.appendChild(button);
+      wrapper.appendChild(slider);
+      container.appendChild(wrapper);
+    });
+  </script>
+</body>
+</html>
